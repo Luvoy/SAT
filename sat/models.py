@@ -5,8 +5,29 @@ import torch_geometric.nn as gnn
 from .layers import TransformerEncoderLayer
 from einops import repeat
 
+import copy
+from  torch.nn import ModuleList
+
+def _get_clones(module, N):
+    return ModuleList([copy.deepcopy(module) for i in range(N)])
 
 class GraphTransformerEncoder(nn.TransformerEncoder):
+    # def __init__(self, encoder_layer, num_layers, norm=None, enable_nested_tensor=True, mask_check=True):
+    #     # super().__init__()
+    #     torch._C._log_api_usage_once(f"torch.nn.modules.{self.__class__.__name__}")
+    #     self.layers = _get_clones(encoder_layer, num_layers)
+    #     self.num_layers = num_layers
+    #     self.norm = norm
+    #     # this attribute saves the value providedat object construction
+    #     self.enable_nested_tensor = enable_nested_tensor
+    #     # this attribute controls whether nested tensors are used
+    #     self.use_nested_tensor = enable_nested_tensor
+    #     self.mask_check = mask_check
+
+    #     enc_layer = "encoder_layer"
+    # def __init__(self, encoder_layer, num_layers):
+    #     super().__init__(encoder_layer,num_layers)
+
     def forward(self, x, edge_index, complete_edge_index,
             subgraph_node_index=None, subgraph_edge_index=None,
             subgraph_edge_attr=None, subgraph_indicator_index=None, edge_attr=None, degree=None,

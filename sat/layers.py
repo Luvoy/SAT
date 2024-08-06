@@ -40,6 +40,7 @@ class Attention(gnn.MessagePassing):
         self.scale = head_dim ** -0.5
 
         self.se = se
+        self.batch_first=False
 
         self.gnn_type = gnn_type
         if self.se == "khopgnn":
@@ -294,6 +295,7 @@ class KHopStructureExtractor(nn.Module):
             subgraph_indicator_index=None, subgraph_node_index=None,
             subgraph_edge_attr=None):
 
+        print('in KHopStructureExtractor, in forward(), subgraph_node_index.shape', subgraph_node_index.shape, 'x.shape', x.shape)
         x_struct = self.structure_extractor(
             x=x[subgraph_node_index],
             edge_index=subgraph_edge_index,
@@ -301,6 +303,7 @@ class KHopStructureExtractor(nn.Module):
             subgraph_indicator_index=subgraph_indicator_index,
             agg="sum",
         )
+        print('in KHopStructureExtractor, in forward(), x_struct.shape',  x_struct.shape)
         x_struct = torch.cat([x, x_struct], dim=-1)
         if self.batch_norm:
             x_struct = self.bn(x_struct)
@@ -351,6 +354,7 @@ class TransformerEncoderLayer(nn.TransformerEncoderLayer):
         if self.pre_norm:
             x = self.norm1(x)
 
+        # print('in TransformerEncoderLayer forward(), x.shape', x.shape, 'edge_index.shape', edge_index.shape)
         x2, attn = self.self_attn(
             x,
             edge_index,

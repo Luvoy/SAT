@@ -112,7 +112,7 @@ class GraphDataset(object):
                 self.subgraph_indicator_index.append(torch.cat(indicators))
                 if self.use_subgraph_edge_attr and graph.edge_attr is not None:
                     self.subgraph_edge_attr.append(torch.cat(edge_attributes))
-        print("Done!")
+        print("Extracting hop subgraphs Done!")
 
     def __len__(self):
         return len(self.dataset)
