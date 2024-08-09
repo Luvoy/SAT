@@ -225,17 +225,22 @@ def eval_epoch(model, data, criterion, use_cuda=False, phase_str="val", mask=Non
         output = model(data)
         loss = criterion(output, data.y.squeeze(), mask)
 
-        cm += accuracy_SBM(
-            output[mask], data.y.squeeze()[mask]
-        )  # REVIEW 这里没有像 criterion 一样当作参数 as an expedient
+        # cm += accuracy_SBM(
+        #    output[mask], data.y.squeeze()[mask]
+        # )  # REVIEW 这里没有像 criterion 一样当作参数 as an expedient
 
         running_loss += loss.item() * size
         n_sample += size
         # end for
     toc = timer()
 
+    pred = output.argmax(dim=-1)
+    # print('output.shape', output.shape,'pred.shape', pred.shape, 'mask.shape', mask.shape,'(pred[mask] == data.y[mask]).sum()', (pred[mask] == data.y[mask]).sum(), 'mask.sum()', mask.sum())
+    # print('pred[mask]', pred[mask], 'data.y[mask]', data.y[mask], '\npred[mask]==data.y[mask]', pred[mask]==data.y[mask])
     epoch_loss = running_loss / n_sample
-    epoch_acc = torch.mean(cm.diag() / cm.sum(1)).item()
+    epoch_acc = int((pred[mask] == data.y.squeeze(-1)[mask]).sum()) / int(mask.sum())
+    # epoch_acc = torch.mean(cm.diag() / cm.sum(1)).item()
+
     print(
         "{} loss: {:.4f} ACC: {:.4f} time: {:.2f}s".format(
             phase_str, epoch_loss, epoch_acc, toc - tic
