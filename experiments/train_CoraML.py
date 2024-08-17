@@ -41,6 +41,7 @@ def load_args():
     parser.add_argument(
         "--lr", type=float, default=0.0003, help="initial learning rate"
     )
+    parser.add_argument("--only-topo", type=bool, default=False, help="only use topology, not use node features")
     parser.add_argument("--weight-decay", type=float, default=1e-4, help="weight decay")
     parser.add_argument("--batch-size", type=int, default=32, help="batch size")
     parser.add_argument(
@@ -127,7 +128,7 @@ def load_args():
                 pass
         bn = "BN" if args.batch_norm else "LN"
         if args.se == "khopgnn":
-            outdir = outdir + "/{}_{}_{}_{}_{}_{}_{}_{}_{}_{}".format(
+            outdir = outdir + "/{}_{}_{}_{}_{}_{}_{}_{}_{}_{}_{}".format(
                 args.se,
                 args.gnn_type,
                 args.k_hop,
@@ -138,9 +139,10 @@ def load_args():
                 args.num_heads,
                 args.dim_hidden,
                 bn,
+                'only-topo' if args.only_topo else 'topo+feat'
             )
         else:
-            outdir = outdir + "/{}_{}_{}_{}_{}_{}_{}_{}_{}".format(
+            outdir = outdir + "/{}_{}_{}_{}_{}_{}_{}_{}_{}_{}".format(
                 args.gnn_type,
                 args.k_hop,
                 args.dropout,
@@ -150,6 +152,7 @@ def load_args():
                 args.num_heads,
                 args.dim_hidden,
                 bn,
+                'only-topo' if args.only_topo else 'topo+feat'
             )
         if not os.path.exists(outdir):
             try:
@@ -279,6 +282,9 @@ def main():
         se=args.se,
         cache_path=cache_path + "train",
     )
+    if args.only_topo:
+        print('only topo')
+        parsed_dataset[0].x = torch.zeros_like(parsed_dataset[0].x, dtype=float)
 
     input_size = n_tags
     # train_loader = DataLoader(train_dset, batch_size=args.batch_size, shuffle=True)
