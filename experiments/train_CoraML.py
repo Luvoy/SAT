@@ -63,6 +63,12 @@ def load_args():
         "--layer-norm", action="store_true", help="use layer norm instead of batch norm"
     )
     parser.add_argument(
+        "--use-split", type=bool, default=True, help="use mask to split train/val/test dataset"
+    )
+    parser.add_argument(
+        "--save-se", type=bool, default=False, help="whether to save structure encoding"
+    )
+    parser.add_argument(
         "--gnn-type",
         type=str,
         default="graph",
@@ -211,7 +217,7 @@ def train_epoch(
     return epoch_loss
 
 
-def eval_epoch(model, data, criterion, use_cuda=False, phase_str="val", mask=None):
+def eval_epoch(model, data, criterion, use_cuda=False, phase_str="val", mask=None, is_save_in_cur_epo=False):
     model.eval()
 
     running_loss = 0.0
@@ -225,7 +231,7 @@ def eval_epoch(model, data, criterion, use_cuda=False, phase_str="val", mask=Non
         if use_cuda:
             data = data.cuda()
 
-        output = model(data)
+        output = model(data, save_se=args.outdir if is_save_in_cur_epo else False)
         loss = criterion(output, data.y.squeeze(), mask)
 
         # cm += accuracy_SBM(
@@ -371,6 +377,8 @@ def main():
     else:
 
         def criterion(out, y, mask):
+            if mask is None:
+                return nn.functional.cross_entropy(out, y)
             return nn.functional.cross_entropy(out[mask], y[mask])
 
         # criterion = nn.CrossEntropyLoss()
@@ -427,7 +435,7 @@ def main():
             lr_scheduler,
             epoch,
             args.use_cuda,
-            mask=train_mask,
+            mask=train_mask if args.use_split else None,
         )
         val_score, val_loss = eval_epoch(
             model,
@@ -435,7 +443,7 @@ def main():
             criterion,
             args.use_cuda,
             phase_str="val",
-            mask=val_mask,
+            mask=val_mask if args.use_split else None,
         )
         test_score, test_loss = eval_epoch(
             model,
@@ -443,7 +451,7 @@ def main():
             criterion,
             args.use_cuda,
             phase_str="test",
-            mask=test_mask,
+            mask=test_mask if args.use_split else None,
         )
 
         if args.warmup == 0:
@@ -470,7 +478,8 @@ def main():
         criterion,
         args.use_cuda,
         phase_str="test",
-        mask=test_mask,
+        mask=test_mask if args.use_split else None,
+        is_save_in_cur_epo=args.save_se,
     )
 
     print("test ACC {:.4f}".format(test_score))

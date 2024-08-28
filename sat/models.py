@@ -31,10 +31,10 @@ class GraphTransformerEncoder(nn.TransformerEncoder):
     def forward(self, x, edge_index, complete_edge_index,
             subgraph_node_index=None, subgraph_edge_index=None,
             subgraph_edge_attr=None, subgraph_indicator_index=None, edge_attr=None, degree=None,
-            ptr=None, return_attn=False):
+            ptr=None, return_attn=False, save_se=False):
         output = x
 
-        for mod in self.layers:
+        for i,mod in enumerate(self.layers):
             output = mod(output, edge_index, complete_edge_index,
                 edge_attr=edge_attr, degree=degree,
                 subgraph_node_index=subgraph_node_index,
@@ -42,7 +42,8 @@ class GraphTransformerEncoder(nn.TransformerEncoder):
                 subgraph_indicator_index=subgraph_indicator_index, 
                 subgraph_edge_attr=subgraph_edge_attr,
                 ptr=ptr,
-                return_attn=return_attn
+                return_attn=return_attn,
+                save_se = save_se if i== len(self.layers) -1 else False  # only save in last
             )
         if self.norm is not None:
             output = self.norm(output)
@@ -92,8 +93,8 @@ class GraphTransformer(nn.Module):
         self.se = se
         encoder_layer = TransformerEncoderLayer(
             d_model, num_heads, dim_feedforward, dropout, batch_norm=batch_norm,
-            gnn_type=gnn_type, se=se, **kwargs)
-        self.encoder = GraphTransformerEncoder(encoder_layer, num_layers)
+            gnn_type=gnn_type, se=se, **kwargs) # NOTE single layer
+        self.encoder = GraphTransformerEncoder(encoder_layer, num_layers) # layers in this network, using torch's official tsfmer to wrapper layer in this repo
         self.global_pool = global_pool
         if global_pool == 'mean':
             self.pooling = gnn.global_mean_pool
@@ -116,7 +117,7 @@ class GraphTransformer(nn.Module):
             for i in range(max_seq_len):
                 self.classifier.append(nn.Linear(d_model, num_class))
 
-    def forward(self, data, return_attn=False):
+    def forward(self, data, return_attn=False, save_se=False):
         x, edge_index, edge_attr = data.x, data.edge_index, data.edge_attr
 
         node_depth = data.node_depth if hasattr(data, "node_depth") else None
@@ -177,7 +178,8 @@ class GraphTransformer(nn.Module):
             subgraph_indicator_index=subgraph_indicator_index, 
             subgraph_edge_attr=subgraph_edge_attr,
             ptr=data.ptr,
-            return_attn=return_attn
+            return_attn=return_attn,
+            save_se=save_se
         )
         # readout step
         if self.use_global_pool:

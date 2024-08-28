@@ -9,7 +9,8 @@ from einops import rearrange
 from .utils import pad_batch, unpad_batch
 from .gnn_layers import get_simple_gnn_layer, EDGE_GNN_TYPES
 import torch.nn.functional as F
-
+import pandas as pd
+import os
 
 class Attention(gnn.MessagePassing):
     """Multi-head Structure-Aware attention using PyG interface
@@ -84,7 +85,8 @@ class Attention(gnn.MessagePassing):
             subgraph_edge_attr=None,
             edge_attr=None,
             ptr=None,
-            return_attn=False):
+            return_attn=False,
+            save_se=False):
         """
         Compute attention layer. 
 
@@ -117,6 +119,10 @@ class Attention(gnn.MessagePassing):
             )
         else: # k-subtree SAT
             x_struct = self.structure_extractor(x, edge_index, edge_attr)
+
+        if save_se:
+            df= pd.DataFrame(x_struct.detach().to('cpu', non_blocking=True).numpy())
+            df.to_csv(os.path.join(save_se, "struct_encoding.csv"), header=False, index=False) 
 
 
         # Compute query and key matrices
@@ -349,6 +355,7 @@ class TransformerEncoderLayer(nn.TransformerEncoderLayer):
             subgraph_indicator_index=None,
             edge_attr=None, degree=None, ptr=None,
             return_attn=False,
+            save_se=False
         ):
 
         if self.pre_norm:
@@ -365,7 +372,8 @@ class TransformerEncoderLayer(nn.TransformerEncoderLayer):
             subgraph_indicator_index=subgraph_indicator_index,
             subgraph_edge_attr=subgraph_edge_attr,
             ptr=ptr,
-            return_attn=return_attn
+            return_attn=return_attn,
+            save_se=save_se
         )
 
         if degree is not None:
